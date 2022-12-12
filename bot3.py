@@ -2,59 +2,112 @@ from collections import UserDict
 from datetime import datetime
 
 
-class Field():
+class Field:
     def __init__(self, value):
+        self._value = None
         self.value = value
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
 
 
 class Name(Field):
     pass
 
 
-class Phone():
-    def __init__(self):
-        self.__value = None
+class Phone(Field):
+    def __init__(self, value):
+        self.value = value
 
     @property
     def value(self):
-        return self.__value
+        return self._value
 
-    @value.setter
+    @Field.value.setter
     def value(self, new_value):
         if new_value is not None and len(new_value) == 10:
-            self.__value = new_value
+            self._value = new_value
         else:
-            self.__value = "-"
+            self._value = "-"
             print("The phone number must be 10 digits long. Number not saved.")
 
 
-class Birthday():
-    def __init__(self):
-        self.__value = None
+class Birthday(Field):
+    def __init__(self, value):
+        self.value = value
 
     @property
     def value(self):
-        return self.__value
+        return self._value
 
-    @value.setter
+    @Field.value.setter
     def value(self, new_value):
         if new_value is not None:
-            self.__value = datetime.strptime(new_value, "%d.%m.%Y").date()
+            self._value = datetime.strptime(new_value, "%d.%m.%Y").date()
 
 
-class Record():
+class AddressBook(UserDict):
+    POS = 0
+    MAX_CONT = 3
+
+    def str_or_obj(self, bday):
+        if isinstance(bday, str):
+            return ("-")
+        else:
+            return bday.value
+
+    def search(self, value):
+        return value in self.data.values()
+
+    def add_record(self, record):
+        self.data[record.name.value] = record
+
+    def all_show_phone_number(self):
+        all_cont = ""
+        for key, value in self.data.items():
+            all_cont += f"{key}: {value.show_phone_number()[0]} | birthday: {self.str_or_obj(value.birthday)}\n"
+        return all_cont[:-1]
+
+    def keys(self):
+        key_book = []
+        for key, value in self.data.items():
+            key_book.append(key)
+        return (key_book)
+
+    def __next__(self):
+        if self.POS < len(self.keys()):
+            cont = ""
+            i = self.POS
+            k = self.keys()
+            while i < self.POS + self.MAX_CONT and i < len(k):
+                cont += f"{k[i]}: {self.data.get(k[i]).show_phone_number()[0]} | birthday: {self.str_or_obj(self.data.get(k[i]).birthday)}\n"
+                i += 1
+            self.POS = i
+            return cont
+        return "End contact list"
+        #raise StopIteration
+
+    def __iter__(self):
+        return self
+
+
+class Record(AddressBook):
 
     def __init__(self, name, phone_number=None, birthday=None):
         self.name = Name(name)
-        self.phone_number = [Phone()]
-        self.phone_number[0].value = phone_number
+        self.phone_number = []
+        if phone_number:
+            self.add_phone_number(phone_number)
 
         if birthday is not None:
-            self.birthday = Birthday()
-            self.birthday.value = birthday
+            self.birthday = Birthday(birthday)
         else:
-            self.birthday = Birthday()
-            self.birthday.value = None
+            self.birthday = "-"
 
     def add_phone_number(self, number):
         self.phone_number.append(Phone(number))
@@ -93,49 +146,6 @@ class Record():
                 return res
         else:
             return "Birthday not specified"
-
-
-class AddressBook(UserDict):
-    POS = 0
-    MAX_CONT = 3
-
-    # def __init__(self):
-    #    self.current_value = 0
-
-    def search(self, value):
-        return value in self.data.values()
-
-    def add_record(self, record):
-        self.data[record.name.value] = record
-
-    def all_show_phone_number(self):
-        all_cont = ""
-        for key, value in self.data.items():
-            all_cont += f"{key}: {value.show_phone_number()[0]} | birthday: {value.birthday.value}\n"
-        return all_cont[:-1]
-
-    def keys(self):
-        key_book = []
-        for key, value in self.data.items():
-            key_book.append(key)
-        return (key_book)
-
-    def __next__(self):
-        if self.POS < len(self.keys()):
-            cont = ""
-            i = self.POS
-            k = self.keys()
-            while i < self.POS + self.MAX_CONT and i < len(k):
-                cont += f"{k[i]}: {self.data.get(k[i]).show_phone_number()[0]} | birthday: {self.data.get(k[i]).birthday.value}\n"
-                #cont += f"{k[i]}\n"
-                i += 1
-            self.POS = i
-            return cont
-        return "End contact list"
-        #raise StopIteration
-
-    def __iter__(self):
-        return self
 
 
 def input_error(func):
@@ -186,7 +196,7 @@ def add_contact(name, phone="", birthday=None):
     else:
         user = Record(name, phone, birthday)
         list_user.add_record(user)
-        return "Number saved"
+        return "Contact saved"
 
 
 @input_error
